@@ -14,12 +14,22 @@ import processing.video.*;
 Capture video;
 boolean cheatScreen;
 
+// number of images, up to 255
+int numFrames = 108;  // The number of frames in the animation
+PImage[] images = new PImage[numFrames];
+
 float[] bright;
 
 int inc = 8;
 
 void setup() {
   size(720, 405);
+ 
+  // use up to 255 images, numbered 001, 002, 003, etc
+  for (int i=1; i<numFrames+1; i++) {
+    String imageName = "sunrise" + nf(i, 3) + ".jpg";
+    images[i-1] = loadImage(imageName);
+  }
  
   // This the default video input, see the GettingStartedCapture 
   // example if it creates an error
@@ -30,6 +40,13 @@ void setup() {
   
   int count = video.width * video.height;
   //println(count);
+
+  // current brightness for each point
+  bright = new float[count];
+  for (int i = 0; i < count; i++) {
+    // set each brightness at the midpoint to start
+    bright[i] = 128;
+  }
 
 }
 
@@ -62,17 +79,21 @@ void draw() {
       int b = pixelColor & 0xff;
 
       int pixelBright = max(r, g, b);
+      
+      // ease the brightness, animates change
+      bright[index] += (pixelBright - bright[index]) * .5;
 
       // flip the camera
-      int xPixel = video.width-x-(video.width%inc);
+      int xFlip = video.width-x-(video.width%inc);
       if (video.width%inc == 0) {
-        xPixel -= inc;
+        xFlip -= inc;
       } 
       
-      noStroke();
-      //fill(pixelBright);
-      fill(pixelColor);
-      rect(xPixel, y, inc, inc);
+      int val = restrictRange(bright[index], 107);
+      image(images[int(map(val, 0, 256, 0, numFrames))], xFlip, y, inc, inc);
+      
+      //fill(pixelColor);
+      //rect(xFlip, y, inc, inc);
 
       index += inc;
     }
@@ -93,6 +114,11 @@ void draw() {
   }
 }
 
+
+int restrictRange( float input, int range ) {
+  int out = int(map(input, 0, 256, 0, range))*(256/range);
+  return out;
+}
 
 /**
  * Handle key presses:
